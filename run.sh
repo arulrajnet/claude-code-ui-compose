@@ -67,6 +67,8 @@ else
 
   echo "Starting cloudcli on port $CLOUDCLI_PORT..."
   SERVER_PORT="$CLOUDCLI_PORT" DATABASE_PATH="$DBFILE" \
+  IS_PLATFORM=true \
+  VITE_IS_PLATFORM=true \
     nohup "${CLOUDCLI_CMD[@]}" >"$LOGFILE" 2>&1 &
   echo $! >"$PIDFILE"
 fi
