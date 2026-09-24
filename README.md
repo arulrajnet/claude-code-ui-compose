@@ -58,9 +58,10 @@ Copy `.env.example` to `.env` and fill in:
 - Change `CLOUDCLI_INIT_PASSWORD` in `.env`.
 - Replace `.htpasswd` with your own user(s): `htpasswd -c .htpasswd <user>`.
 
-## TODO
+## Avoiding double login
 
-- Fix the double login: users hit oauth2-proxy's sign-in page first, then
-  CloudCLI's own login screen. CloudCLI has a build-time `IS_PLATFORM` flag
-  meant to skip its login, but it's baked in at Vite build time in the
-  published npm package, so setting it at runtime has no effect.
+The `build-cloudcli/` directory contains a custom Dockerfile that compiles
+claudecodeui with `VITE_IS_PLATFORM=true` at build time. This embeds
+platform-mode configuration into the bundle, skipping CloudCLI's auth flow
+entirely — users authenticate once via oauth2-proxy and proceed directly to
+the app.

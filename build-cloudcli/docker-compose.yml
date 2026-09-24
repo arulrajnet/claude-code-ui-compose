@@ -1,0 +1,28 @@
+services:
+  claudecodeui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Bump this to pick up a new siteboon/claudecodeui release, then:
+        #   docker compose build --no-cache && docker compose up -d
+        CLAUDECODEUI_VERSION: "1.37.3"
+    image: claudecodeui:1.37.3
+    container_name: claudecodeui
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      SERVER_PORT: "3001"
+      HOST: "0.0.0.0"
+      # DATABASE_PATH: /root/.cloudcli/auth.db
+      # CLAUDE_CLI_PATH: /usr/local/bin/claude
+      # CONTEXT_WINDOW: "200000"
+    volumes:
+      # Persists the sqlite auth/config database across container recreation.
+      - cloudcli-data:/root/.cloudcli
+      # Uncomment to share Claude Code's own project/session data with the host.
+      # - ~/.claude:/root/.claude
+
+volumes:
+  cloudcli-data:
