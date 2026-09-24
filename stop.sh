@@ -2,6 +2,10 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
+set -a
+source .env
+set +a
+
 PIDFILE="$CLOUDCLI_DATA_DIR/cloudcli.pid"
 
 # Check if CloudCLI is running
