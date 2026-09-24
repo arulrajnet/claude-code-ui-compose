@@ -1,0 +1,127 @@
+volumes:
+  acme:
+
+configs:
+  traefik-conf:
+    content: |
+      # Traefik configuration goes here, for example:
+      http:
+        routers:
+          router01:
+            entryPoints:
+              - websecure
+            service: upstream01
+            rule: PathPrefix(`/`)
+            tls:
+              certResolver: leresolver
+              domains:
+                - main: ${SERVER_FQDN}
+            middlewares:
+              - oauth2-proxy@docker
+        services:
+          upstream01:
+            loadBalancer:
+              servers:
+                - url: http://host.docker.internal:3010
+
+
+
+services:
+  traefik:
+    image: traefik:${TRAEFIK_VERSION}
+    command:
+      - --log.level=INFO
+      - --accesslog=true
+      - --global.sendanonymoususage=false
+      - --global.checknewversion=false
+      - --certificatesResolvers.leresolver.acme.email=${LE_ACCOUNT_EMAIL}
+      - --certificatesResolvers.leresolver.acme.storage=/le/acme.json
+      - --certificatesResolvers.leresolver.acme.httpChallenge.entryPoint=web
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/config
+      - --providers.file.watch=true
+      - --entryPoints.web.address=:80
+      - --entryPoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+    ports:
+      # - "80:80"
+      - "443:443"
+    volumes:
+      - acme:/le
+      - /var/run/docker.sock:/var/run/docker.sock
+    configs:
+      - source: traefik-conf
+        target: /config/traefik-conf.yaml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      oauth2-proxy:
+        condition: service_healthy
+
+  whoami:
+    image: traefik/whoami:${TRAEFIK_WHOAMI_VERSION}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.whoami.rule=PathPrefix(`/whoami`)
+      - traefik.http.routers.whoami.entrypoints=websecure
+      - traefik.http.routers.whoami.tls=true
+      - traefik.http.routers.whoami.tls.certresolver=leresolver
+      - traefik.http.routers.whoami.tls.domains[0].main=${SERVER_FQDN}
+      - traefik.http.routers.whoami.middlewares=oauth2-proxy@docker
+      - traefik.http.services.whoami.loadbalancer.server.port=80
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:${OAUTH2_PROXY_VERSION}
+    command:
+      - --client-id=dummy
+      - --client-secret=dummy
+      - --cookie-secret=cbiGJkwts9Ye6XD2Pbt_L1jLcipIZBDMfMuqxDWRbeQ=
+      - --custom-templates-dir=/templates
+      - --cookie-secure=true
+      - --htpasswd-file=/.htpasswd
+      - --http-address=0.0.0.0:4181
+      - --provider=google
+      - --reverse-proxy=true
+      - --set-authorization-header
+      - --set-xauthrequest
+      - --skip-provider-button=false
+      - --upstream=static://202
+    volumes:
+      - ./sign_in.html:/templates/sign_in.html
+      - ./.htpasswd:/.htpasswd
+    expose:
+      - 4181
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4181/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.oauth2-proxy.rule=PathPrefix(`/oauth2`)
+      - traefik.http.routers.oauth2-proxy.entrypoints=websecure
+      - traefik.http.routers.oauth2-proxy.tls=true
+      - traefik.http.routers.oauth2-proxy.tls.certresolver=leresolver
+      - traefik.http.routers.oauth2-proxy.tls.domains[0].main=${SERVER_FQDN}
+      - traefik.http.middlewares.oauth2-proxy.forwardauth.address=http://oauth2-proxy:4181
+      - traefik.http.middlewares.oauth2-proxy.forwardauth.authResponseHeaders=X-Forwarded-User
+      - traefik.http.services.oauth2-proxy.loadbalancer.server.port=4181
+
+  cloudcli-init:
+    image: curlimages/curl:${CURL_VERSION}
+    restart: "no"
+    env_file: .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      # Keep this host:port in sync with run.sh and traefik-conf.yaml.
+      - |
+        until curl -sf "http://host.docker.internal:3010/health" >/dev/null; do sleep 1; done
+        curl -sf -X POST "http://host.docker.internal:3010/api/auth/register" \
+          -H "Content-Type: application/json" \
+          -d "{\"username\":\"$$CLOUDCLI_INIT_USERNAME\",\"password\":\"$$CLOUDCLI_INIT_PASSWORD\"}" || true
