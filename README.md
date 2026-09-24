@@ -4,7 +4,7 @@ Traefik (TLS + reverse proxy) and oauth2-proxy (username/password login) in
 front of [CloudCLI](https://cloudcli.ai), the npm package for
 [siteboon/claudecodeui](https://github.com/siteboon/claudecodeui).
 
-CloudCLI runs on the host, started by `run.sh` — not in a container. Docker
+CloudCLI runs on the host, started by `start.sh` — not in a container. Docker
 Compose only runs Traefik, oauth2-proxy, a `whoami` test route, and a one-shot
 init container that creates CloudCLI's first user.
 
@@ -46,11 +46,11 @@ Copy `.env.example` to `.env` and fill in:
 ## Running
 
 ```
-./run.sh                    # (re)start docker compose; leave a running CloudCLI alone
-./run.sh --restart-cloudcli # also stop and restart the CloudCLI process
+./start.sh                    # (re)start docker compose; leave a running CloudCLI alone
+./start.sh --restart-cloudcli # also stop and restart the CloudCLI process
 ```
 
-`run.sh` uses the `cloudcli` binary if it's on `PATH`, otherwise
+`start.sh` uses the `cloudcli` binary if it's on `PATH`, otherwise
 `npx -y @cloudcli-ai/cloudcli`.
 
 ## Before exposing publicly

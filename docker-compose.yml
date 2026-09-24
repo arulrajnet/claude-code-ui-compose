@@ -119,7 +119,7 @@ services:
       - "host.docker.internal:host-gateway"
     entrypoint: ["/bin/sh", "-c"]
     command:
-      # Keep this host:port in sync with run.sh and traefik-conf.yaml.
+      # Keep this host:port in sync with start.sh and traefik-conf.yaml.
       - |
         until curl -sf "http://host.docker.internal:3010/health" >/dev/null; do sleep 1; done
         curl -sf -X POST "http://host.docker.internal:3010/api/auth/register" \
