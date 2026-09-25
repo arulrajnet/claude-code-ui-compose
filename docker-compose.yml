@@ -46,6 +46,7 @@ services:
       - --entrypoints.web.http.redirections.entryPoint.to=websecure
       - --entrypoints.web.http.redirections.entryPoint.scheme=https
       - --entrypoints.web.http.redirections.entrypoint.permanent=true
+    restart: "unless-stopped"
     ports:
       # - "80:80"
       - "443:443"
@@ -63,6 +64,7 @@ services:
 
   whoami:
     image: traefik/whoami:${TRAEFIK_WHOAMI_VERSION}
+    restart: "unless-stopped"
     labels:
       - traefik.enable=true
       - traefik.http.routers.whoami.rule=PathPrefix(`/whoami`)
@@ -89,6 +91,7 @@ services:
       - --set-xauthrequest
       - --skip-provider-button=false
       - --upstream=static://202
+    restart: "unless-stopped"
     volumes:
       - ./sign_in.html:/templates/sign_in.html
       - ./.htpasswd:/.htpasswd
