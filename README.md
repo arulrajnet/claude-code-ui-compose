@@ -26,6 +26,9 @@ once authenticated, Traefik proxies the request on to CloudCLI.
 ## Layout
 
 - `docker-compose.yml` — Traefik, oauth2-proxy, whoami, cloudcli-init.
+- `start.sh` / `stop.sh` — start/stop CloudCLI and the compose stack.
+- `status.sh` — health report for CloudCLI and the compose stack.
+- `install-cloudcli-service.sh` — install CloudCLI as a systemd user service (start on boot).
 - `sign_in.html` — oauth2-proxy's sign-in page (username/password only).
 - `.htpasswd` — basic-auth credentials for oauth2-proxy. Gitignored.
 - `.env` — config and credentials, copied from `.env.example`. Gitignored.
@@ -52,6 +55,52 @@ Copy `.env.example` to `.env` and fill in:
 
 `start.sh` uses the `cloudcli` binary if it's on `PATH`, otherwise
 `npx -y @cloudcli-ai/cloudcli`.
+
+## Status
+
+```
+./status.sh            # check everything; exits non-zero if any check fails
+./status.sh --verbose  # also print the CloudCLI log tail and `docker compose ps`
+```
+
+Checks the CloudCLI process (pid file, port 3010, `/health`), the boot service
+and linger, each Docker Compose service (state, health, `cloudcli-init` exit
+code), and the public endpoint through Traefik (`/oauth2/sign_in`, pinned to
+127.0.0.1). An untrusted TLS certificate is reported as a warning, not a
+failure. The CloudCLI log tail is printed automatically when a CloudCLI check
+fails.
+
+## Start on boot
+
+The Docker Compose services already restart on boot (`restart: unless-stopped`).
+To do the same for CloudCLI, install it as a systemd user service:
+
+```
+./install-cloudcli-service.sh            # write, enable and start cloudcli.service
+./install-cloudcli-service.sh --restart  # also replace an already-running cloudcli now
+```
+
+The script writes `~/.config/systemd/user/cloudcli.service` with the absolute
+`cloudcli` path and the current `PATH` baked in (systemd doesn't load nvm), and
+enables linger so the service starts at boot without a login. If that fails, run
+`sudo loginctl enable-linger $USER` once. Re-run the script after upgrading
+node/nvm or changing `.env`.
+
+The service is restarted if it crashes. It writes the same pid file and log as
+`start.sh`, so `status.sh`, `start.sh` and `stop.sh` keep working. A CloudCLI
+already started by `start.sh` is left alone (replacing it drops live terminal
+sessions); the service takes over on the next boot, or pass `--restart`.
+
+```
+systemctl --user status cloudcli    # service state
+systemctl --user restart cloudcli   # restart under the service
+systemctl --user disable cloudcli   # stop starting on boot
+```
+
+Use `systemctl --user restart cloudcli` rather than
+`./start.sh --restart-cloudcli` once the service is installed: the latter
+restarts CloudCLI outside the service, so it won't be restarted if it crashes
+until the next boot.
 
 ## Before exposing publicly
 
