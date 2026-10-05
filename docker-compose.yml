@@ -114,6 +114,41 @@ services:
       - traefik.http.middlewares.oauth2-proxy.forwardauth.authResponseHeaders=X-Forwarded-User
       - traefik.http.services.oauth2-proxy.loadbalancer.server.port=4181
 
+  ttyd:
+      image: tsl0922/ttyd:alpine
+      ports:
+        - 7681
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
+      volumes:
+        # Mount your host machine's SSH keys to the user's home directory
+        - ~/.ssh:/home/hostuser/.ssh:ro
+      entrypoint: ["/bin/sh", "-c"]
+      command:
+        - |
+          apk add --no-cache openssh-client
+
+          TARGET_UID=$$(stat -c "%u" /home/hostuser/.ssh)
+          TARGET_GID=$$(stat -c "%g" /home/hostuser/.ssh)
+
+          addgroup -g $$TARGET_GID hostgroup
+          adduser -u $$TARGET_UID -G hostgroup -D -h /home/hostuser hostuser
+
+          exec ttyd -u $$TARGET_UID -g $$TARGET_GID --base-path /terminal --writable \
+          -t titleFixed="Host Terminal" \
+          -t fontSize=16 \
+          -t theme='{"background": "#1e1e1e"}' \
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${HOST_USERNAME}@host.docker.internal
+      restart: "unless-stopped"
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.ttyd.rule=PathPrefix(`/terminal`)
+        - traefik.http.routers.ttyd.entrypoints=websecure
+        - traefik.http.routers.ttyd.tls=true
+        - traefik.http.routers.ttyd.tls.certresolver=leresolver
+        - traefik.http.routers.ttyd.tls.domains[0].main=${SERVER_FQDN}
+        - traefik.http.services.ttyd.loadbalancer.server.port=7681
+
   cloudcli-init:
     image: curlimages/curl:${CURL_VERSION}
     restart: "no"
