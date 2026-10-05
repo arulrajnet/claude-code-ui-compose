@@ -121,13 +121,20 @@ services:
       extra_hosts:
         - "host.docker.internal:host-gateway"
       volumes:
-        # Mount your host machine's SSH keys to the container's root user
-        - ~/.ssh:/root/.ssh:ro
+        # Mount your host machine's SSH keys to the user's home directory
+        - ~/.ssh:/home/hostuser/.ssh:ro
       entrypoint: ["/bin/sh", "-c"]
       command:
         - |
-          apk add --no-cache openssh-client && \
-          exec ttyd --base-path /terminal --writable --debug ssh -o StrictHostKeyChecking=no ${HOST_USERNAME}@host.docker.internal
+          apk add --no-cache openssh-client
+
+          TARGET_UID=$$(stat -c "%u" /home/hostuser/.ssh)
+          TARGET_GID=$$(stat -c "%g" /home/hostuser/.ssh)
+
+          addgroup -g $$TARGET_GID hostgroup
+          adduser -u $$TARGET_UID -G hostgroup -D -h /home/hostuser hostuser
+
+          exec ttyd -u $$TARGET_UID -g $$TARGET_GID --base-path /terminal --writable ssh -o StrictHostKeyChecking=no ${HOST_USERNAME}@host.docker.internal
       restart: "unless-stopped"
       labels:
         - traefik.enable=true
