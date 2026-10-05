@@ -147,6 +147,7 @@ services:
         - traefik.http.routers.ttyd.tls=true
         - traefik.http.routers.ttyd.tls.certresolver=leresolver
         - traefik.http.routers.ttyd.tls.domains[0].main=${SERVER_FQDN}
+        - traefik.http.routers.ttyd.middlewares=oauth2-proxy@docker
         - traefik.http.services.ttyd.loadbalancer.server.port=7681
 
   cloudcli-init:
