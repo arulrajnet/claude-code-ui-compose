@@ -134,7 +134,11 @@ services:
           addgroup -g $$TARGET_GID hostgroup
           adduser -u $$TARGET_UID -G hostgroup -D -h /home/hostuser hostuser
 
-          exec ttyd -u $$TARGET_UID -g $$TARGET_GID --base-path /terminal --writable ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${HOST_USERNAME}@host.docker.internal
+          exec ttyd -u $$TARGET_UID -g $$TARGET_GID --base-path /terminal --writable \
+          -t titleFixed="Host Terminal" \
+          -t fontSize=16 \
+          -t theme='{"background": "#1e1e1e"}' \
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${HOST_USERNAME}@host.docker.internal
       restart: "unless-stopped"
       labels:
         - traefik.enable=true
