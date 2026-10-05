@@ -114,6 +114,31 @@ services:
       - traefik.http.middlewares.oauth2-proxy.forwardauth.authResponseHeaders=X-Forwarded-User
       - traefik.http.services.oauth2-proxy.loadbalancer.server.port=4181
 
+  ttyd:
+      image: tsl0922/ttyd:alpine
+      container_name: ttyd_host
+      ports:
+        - 7681
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
+      volumes:
+        # Mount your host machine's SSH keys to the container's root user
+        - ~/.ssh:/root/.ssh:ro
+      entrypoint: ["/bin/sh", "-c"]
+      command:
+        - |
+          apk add --no-cache openssh-client && \
+          exec ttyd -W -b /terminal ssh -o StrictHostKeyChecking=no ${HOST_USERNAME}@host.docker.internal
+      restart: "unless-stopped"
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.ttyd.rule=PathPrefix(`/terminal`)
+        - traefik.http.routers.ttyd.entrypoints=websecure
+        - traefik.http.routers.ttyd.tls=true
+        - traefik.http.routers.ttyd.tls.certresolver=leresolver
+        - traefik.http.routers.ttyd.tls.domains[0].main=${SERVER_FQDN}
+        - traefik.http.services.ttyd.loadbalancer.server.port=7681
+
   cloudcli-init:
     image: curlimages/curl:${CURL_VERSION}
     restart: "no"
