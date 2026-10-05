@@ -116,7 +116,6 @@ services:
 
   ttyd:
       image: tsl0922/ttyd:alpine
-      container_name: ttyd_host
       ports:
         - 7681
       extra_hosts:
@@ -128,7 +127,7 @@ services:
       command:
         - |
           apk add --no-cache openssh-client && \
-          exec ttyd -W -b /terminal ssh -o StrictHostKeyChecking=no ${HOST_USERNAME}@host.docker.internal
+          exec ttyd --base-path /terminal --writable --debug ssh -o StrictHostKeyChecking=no ${HOST_USERNAME}@host.docker.internal
       restart: "unless-stopped"
       labels:
         - traefik.enable=true
