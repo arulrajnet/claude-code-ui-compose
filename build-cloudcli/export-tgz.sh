@@ -6,7 +6,7 @@
 #   ./export-tgz.sh [CLAUDECODEUI_VERSION] [OUTPUT_DIR]
 #
 # Examples:
-#   ./export-tgz.sh                  # build v1.37.3 (Dockerfile default) into ./dist
+#   ./export-tgz.sh                  # build v1.37.6 (Dockerfile default) into ./dist
 #   ./export-tgz.sh 1.38.0            # build a different release
 #   ./export-tgz.sh 1.38.0 ./out      # ...into a different output dir
 
