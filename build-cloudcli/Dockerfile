@@ -14,7 +14,7 @@
 
 FROM node:22-bookworm-slim AS build
 
-ARG CLAUDECODEUI_VERSION=1.37.3
+ARG CLAUDECODEUI_VERSION=1.37.6
 
 # VITE_IS_PLATFORM is read by Vite at build time and inlined into the
 # client bundle - it MUST be set before `npm run build`, not at container
@@ -50,14 +50,34 @@ RUN curl -fsSL \
 # since this is a source tarball, not a git checkout.
 RUN npm pkg delete scripts.prepare
 
-# Drop the committed lockfile: it may have been resolved on a different
-# CPU arch, which trips npm's optional-dependency bug (npm/cli#4828) and
-# leaves platform-specific packages (e.g. @rollup/rollup-linux-*) missing.
-RUN rm -f package-lock.json
+# Pin direct dependencies to the exact versions in the upstream lockfile,
+# then drop the lockfile. Without the pins, `npm install` resolves `^` ranges
+# to the newest releases, which upstream hasn't built against (e.g. a newer
+# @anthropic-ai/claude-agent-sdk changed Query.interrupt()'s return type and
+# broke `tsc` for v1.37.6).
+#
+# The lockfile itself is dropped because it may have been resolved on a
+# different CPU arch, which trips npm's optional-dependency bug (npm/cli#4828)
+# and leaves platform-specific packages (e.g. @rollup/rollup-linux-*) missing.
+RUN node -e ' \
+      const fs = require("node:fs"); \
+      const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")); \
+      const lock = JSON.parse(fs.readFileSync("package-lock.json", "utf8")); \
+      for (const field of ["dependencies", "devDependencies", "optionalDependencies"]) { \
+        for (const name of Object.keys(pkg[field] || {})) { \
+          const locked = lock.packages?.[`node_modules/${name}`]?.version; \
+          if (locked) pkg[field][name] = locked; \
+          else console.warn(`not in lockfile, leaving ${name}@${pkg[field][name]} unpinned`); \
+        } \
+      } \
+      fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n"); \
+    ' \
+    && rm -f package-lock.json
 
 # Install full dependencies (incl. devDependencies) - needed for the
 # vite/tsc build step below.
-RUN npm install
+RUN npm install \
+    && npm ls @anthropic-ai/claude-agent-sdk typescript
 
 # Builds the client (vite, picks up VITE_IS_PLATFORM=true above) and the
 # server (tsc + tsc-alias).
