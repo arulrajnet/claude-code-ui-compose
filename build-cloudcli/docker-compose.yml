@@ -6,8 +6,8 @@ services:
       args:
         # Bump this to pick up a new siteboon/claudecodeui release, then:
         #   docker compose build --no-cache && docker compose up -d
-        CLAUDECODEUI_VERSION: "1.37.3"
-    image: claudecodeui:1.37.3
+        CLAUDECODEUI_VERSION: "1.37.6"
+    image: claudecodeui:1.37.6
     container_name: claudecodeui
     restart: unless-stopped
     ports:
