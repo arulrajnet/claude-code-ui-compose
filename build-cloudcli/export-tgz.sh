@@ -20,6 +20,20 @@ if [[ -n "$VERSION" ]]; then
   BUILD_ARGS+=(--build-arg "CLAUDECODEUI_VERSION=$VERSION")
 fi
 
+# Start from an empty output dir so stale .tgz files from earlier builds don't
+# get picked up by `npm install -g <dir>/*.tgz`. Refuse anything that is (or
+# contains) the current dir, the home dir or /, since OUTPUT_DIR is user input.
+OUTPUT_ABS="$(realpath -m "$OUTPUT_DIR")"
+for protected in / "$HOME" "$PWD"; do
+  case "$(realpath -m "$protected")/" in
+    "${OUTPUT_ABS%/}/"*)
+      echo "Refusing to remove output dir $OUTPUT_DIR ($OUTPUT_ABS): it contains $protected" >&2
+      exit 1
+      ;;
+  esac
+done
+rm -rf "$OUTPUT_ABS"
+
 docker build --target artifact "${BUILD_ARGS[@]}" --output "type=local,dest=${OUTPUT_DIR}" .
 
 echo "Exported:"
