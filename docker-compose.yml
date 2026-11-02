@@ -1,31 +1,6 @@
 volumes:
   acme:
 
-configs:
-  traefik-conf:
-    content: |
-      # Traefik configuration goes here, for example:
-      http:
-        routers:
-          router01:
-            entryPoints:
-              - websecure
-            service: upstream01
-            rule: PathPrefix(`/`)
-            tls:
-              certResolver: leresolver
-              domains:
-                - main: ${SERVER_FQDN}
-            middlewares:
-              - oauth2-proxy@docker
-        services:
-          upstream01:
-            loadBalancer:
-              servers:
-                - url: http://host.docker.internal:3010
-
-
-
 services:
   traefik:
     image: traefik:${TRAEFIK_VERSION}
@@ -53,9 +28,7 @@ services:
     volumes:
       - acme:/le
       - /var/run/docker.sock:/var/run/docker.sock
-    configs:
-      - source: traefik-conf
-        target: /config/traefik-conf.yaml
+      - ${PWD}/traefik_conf:/config
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

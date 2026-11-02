@@ -1,0 +1,19 @@
+http:
+  routers:
+    router01:
+      entryPoints:
+        - websecure
+      service: upstream01
+      rule: PathPrefix(`/`)
+      tls:
+        certResolver: leresolver
+        domains:
+          - main: ${SERVER_FQDN}
+      middlewares:
+        - oauth2-proxy@docker
+
+  services:
+    upstream01:
+      loadBalancer:
+        servers:
+          - url: http://host.docker.internal:3010
