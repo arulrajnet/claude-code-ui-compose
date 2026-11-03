@@ -33,5 +33,5 @@ resolved on a different CPU arch, which drops rollup's native binary - see
 npm/cli#4828). To keep the build reproducible anyway, the Dockerfile first
 pins every direct dependency in `package.json` to its exact lockfile version.
 Without that, `^` ranges float to the newest releases - e.g. a newer
-`@anthropic-ai/claude-agent-sdk` broke `tsc` for v1.37.6. The build log lists
+`@anthropic-ai/claude-agent-sdk` broke `tsc` for v1.37.7. The build log lists
 the installed `@anthropic-ai/claude-agent-sdk` and `typescript` versions.

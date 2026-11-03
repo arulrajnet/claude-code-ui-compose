@@ -6,7 +6,7 @@
 #   ./export-tgz.sh [CLAUDECODEUI_VERSION] [OUTPUT_DIR]
 #
 # Examples:
-#   ./export-tgz.sh                  # build v1.37.6 (Dockerfile default) into ./dist
+#   ./export-tgz.sh                  # build v1.37.7 (Dockerfile default) into ./dist
 #   ./export-tgz.sh 1.38.0            # build a different release
 #   ./export-tgz.sh 1.38.0 ./out      # ...into a different output dir
 
@@ -15,7 +15,7 @@ set -euo pipefail
 VERSION="${1:-}"
 OUTPUT_DIR="${2:-./dist}"
 
-BUILD_ARGS=()
+BUILD_ARGS=(--no-cache)
 if [[ -n "$VERSION" ]]; then
   BUILD_ARGS+=(--build-arg "CLAUDECODEUI_VERSION=$VERSION")
 fi
