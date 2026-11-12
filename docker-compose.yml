@@ -41,6 +41,8 @@ services:
   whoami:
     image: traefik/whoami:${TRAEFIK_WHOAMI_VERSION}
     restart: "unless-stopped"
+    expose:
+      - 80
     labels:
       - traefik.enable=true
       - traefik.http.routers.whoami.rule=PathPrefix(`/whoami`)
