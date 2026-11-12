@@ -8,7 +8,7 @@ http:
       tls:
         certResolver: leresolver
         domains:
-          - main: ${SERVER_FQDN}
+          - main: '{{ env "SERVER_FQDN" }}'
       middlewares:
         - oauth2-proxy@docker
 
