@@ -18,7 +18,7 @@ $SERVICES_HELP
 
 Examples:
   ./restart.sh oauth2-proxy  # e.g. after editing .htpasswd
-  ./restart.sh proxy         # all containers, CloudCLI untouched
+  ./restart.sh proxy         # traefik, oauth2-proxy, whoami; CloudCLI untouched
   ./restart.sh cloudcli      # asks first: drops live terminal sessions
 USAGE
 }

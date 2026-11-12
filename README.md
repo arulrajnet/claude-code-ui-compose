@@ -6,8 +6,21 @@ front of [CloudCLI](https://cloudcli.ai), the npm package for
 
 CloudCLI runs on the host (via `start.sh` or a systemd user service), not in a
 container. Docker
-Compose only runs Traefik, oauth2-proxy, a `whoami` test route, and a one-shot
-init container that creates CloudCLI's first user.
+Compose runs Traefik, oauth2-proxy, a `whoami` test route, a host terminal
+(`ttyd`), a Chromium desktop (`browser`), and a one-shot init container that
+creates CloudCLI's first user.
+
+## Routes
+
+All routes sit behind the oauth2-proxy login.
+
+| Path | Service |
+|---|---|
+| `/` | CloudCLI on the host |
+| `/terminal` | `ttyd`: SSH shell on the host |
+| `/browser/` | `browser`: Chromium streamed to the page ([linuxserver/chromium](https://github.com/linuxserver/docker-chromium), Selkies) |
+| `/whoami` | `whoami`: test route |
+| `/oauth2` | oauth2-proxy sign-in |
 
 ## Request flow
 
@@ -26,7 +39,7 @@ once authenticated, Traefik proxies the request on to CloudCLI.
 
 ## Layout
 
-- `docker-compose.yml` — Traefik, oauth2-proxy, whoami, cloudcli-init.
+- `docker-compose.yml` — Traefik, oauth2-proxy, whoami, ttyd, browser, cloudcli-init.
 - `start.sh` / `stop.sh` / `restart.sh` / `status.sh` / `logs.sh` — manage
   CloudCLI and the compose services, see [Running](#running).
 - `install-cloudcli-service.sh` — install CloudCLI as a systemd user service (start on boot).
@@ -34,7 +47,7 @@ once authenticated, Traefik proxies the request on to CloudCLI.
 - `sign_in.html` — oauth2-proxy's sign-in page (username/password only).
 - `.htpasswd` — basic-auth credentials for oauth2-proxy. Gitignored.
 - `.env` — config and credentials, copied from `.env.example`. Gitignored.
-- `data/` — CloudCLI's SQLite DB, pid file, and log. Gitignored.
+- `data/` — CloudCLI's SQLite DB, pid file, and log, and the browser profile. Gitignored.
 
 ## Env vars
 
@@ -49,6 +62,9 @@ Copy `.env.example` to `.env` and fill in:
 | `CLOUDCLI_INIT_USERNAME` / `CLOUDCLI_INIT_PASSWORD` | CloudCLI's first user |
 | `*_VERSION` | Pinned image/binary versions |
 | `CLOUDCLI_ENV_FILE` | Optional, default `~/.config/cloudcli/.env`, see below |
+| `CHROMIUM_VERSION` | `linuxserver/chromium` image tag for `/browser` |
+| `BROWSER_DATA_DIR` | Host dir for the browser profile, default `./data/browser` |
+| `BROWSER_PUID` / `BROWSER_PGID` | Owner of the profile files: your `id -u` / `id -g` |
 
 ### Extra env for CloudCLI
 
@@ -83,13 +99,13 @@ are given. `-h` / `--help` shows the options of each.
 | `./status.sh [-v] [service...]` | Health checks with a hint for every failure; non-zero exit if any check fails. |
 | `./logs.sh [-n N] [--no-follow] [service...]` | Last N lines (default 100), then follow. |
 
-Services: `cloudcli`, `traefik`, `oauth2-proxy`, `whoami`. Groups: `all` (the
-default) and `proxy` (`traefik oauth2-proxy whoami`).
+Services: `cloudcli`, `traefik`, `oauth2-proxy`, `whoami`, `ttyd`, `browser`.
+Groups: `all` (the default) and `proxy` (`traefik oauth2-proxy whoami`).
 
 ```
 ./start.sh                  # bring up whatever is down
 ./restart.sh oauth2-proxy   # e.g. after editing .htpasswd
-./stop.sh proxy             # stop the containers, keep CloudCLI running
+./stop.sh proxy             # stop traefik, oauth2-proxy, whoami; keep CloudCLI running
 ./status.sh cloudcli        # just CloudCLI and its boot service
 ./logs.sh                   # everything, merged, one prefix per service
 ```
@@ -156,6 +172,9 @@ on boot: `systemctl --user disable cloudcli`.
 
 - Change `CLOUDCLI_INIT_PASSWORD` in `.env`.
 - Replace `.htpasswd` with your own user(s): `htpasswd -c .htpasswd <user>`.
+- Anyone who can log in controls the browser at `/browser/`, including its
+  saved logins. `HARDEN_DESKTOP=true` turns off its terminal, sudo and file
+  transfer; keep it on.
 
 ## Avoiding double login
 

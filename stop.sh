@@ -17,7 +17,7 @@ $SERVICES_HELP
 
 Examples:
   ./stop.sh                  # stop everything (asks first, CloudCLI included)
-  ./stop.sh proxy            # stop the containers, keep CloudCLI running
+  ./stop.sh proxy            # stop traefik, oauth2-proxy, whoami; keep CloudCLI running
   ./stop.sh whoami           # stop a single container
 USAGE
 }

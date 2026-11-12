@@ -56,13 +56,16 @@ load_env() {
 # --- Service selection ---------------------------------------------------
 
 PROXY_SERVICES=(traefik oauth2-proxy whoami)
-ALL_SERVICES=(cloudcli "${PROXY_SERVICES[@]}")
+COMPOSE_SERVICES=("${PROXY_SERVICES[@]}" ttyd browser)
+ALL_SERVICES=(cloudcli "${COMPOSE_SERVICES[@]}")
 
 SERVICES_HELP="Services:
   cloudcli       CloudCLI on the host (port 3010)
   traefik        TLS + reverse proxy
   oauth2-proxy   login page / auth check
   whoami         test route at /whoami
+  ttyd           host terminal at /terminal
+  browser        Chromium desktop at /browser
 
 Groups:
   all            every service (the default when none is given)
@@ -317,12 +320,12 @@ require_htpasswd() {
   fi
 }
 
-# report_compose BEFORE AFTER VERB REQUESTED... - one line per proxy service
+# report_compose BEFORE AFTER VERB REQUESTED... - one line per compose service
 # that was requested or changed (e.g. pulled in as a dependency).
 report_compose() {
   local before="$1" after="$2" verb="$3"; shift 3
   local svc b a b_id b_state a_id a_state requested
-  for svc in "${PROXY_SERVICES[@]}"; do
+  for svc in "${COMPOSE_SERVICES[@]}"; do
     requested=false
     [[ " $* " == *" $svc "* ]] && requested=true
     b="$(snapshot_get "$before" "$svc")"; a="$(snapshot_get "$after" "$svc")"
