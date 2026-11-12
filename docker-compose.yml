@@ -22,6 +22,9 @@ services:
       - --entrypoints.web.http.redirections.entryPoint.scheme=https
       - --entrypoints.web.http.redirections.entrypoint.permanent=true
     restart: "unless-stopped"
+    # Read by the file-provider configs in traefik_conf/ as {{ env "SERVER_FQDN" }}.
+    environment:
+      - SERVER_FQDN=${SERVER_FQDN}
     ports:
       - "80:80"
       - "443:443"
@@ -38,6 +41,8 @@ services:
   whoami:
     image: traefik/whoami:${TRAEFIK_WHOAMI_VERSION}
     restart: "unless-stopped"
+    expose:
+      - 80
     labels:
       - traefik.enable=true
       - traefik.http.routers.whoami.rule=PathPrefix(`/whoami`)
@@ -89,7 +94,9 @@ services:
 
   ttyd:
       image: tsl0922/ttyd:alpine
-      ports:
+      # Traefik reaches ttyd on the compose network; publishing it on the host
+      # would skip the oauth2-proxy login.
+      expose:
         - 7681
       extra_hosts:
         - "host.docker.internal:host-gateway"
