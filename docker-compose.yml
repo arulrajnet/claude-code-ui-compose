@@ -123,6 +123,39 @@ services:
         - traefik.http.routers.ttyd.middlewares=oauth2-proxy@docker
         - traefik.http.services.ttyd.loadbalancer.server.port=7681
 
+  # Chromium desktop streamed to the web page at /browser (Selkies). Its Nginx
+  # serves everything under SUBFOLDER, so Traefik does not strip the prefix.
+  browser:
+    image: lscr.io/linuxserver/chromium:${CHROMIUM_VERSION}
+    restart: "unless-stopped"
+    shm_size: "1gb"
+    environment:
+      - PUID=${BROWSER_PUID}
+      - PGID=${BROWSER_PGID}
+      - TZ=Etc/UTC
+      - SUBFOLDER=/browser/
+      - TITLE=Browser
+      # No sudo, terminal or file transfer in the streamed desktop.
+      - HARDEN_DESKTOP=true
+      - RESTART_APP=true
+      - SELKIES_ENABLE_SHARING=false
+    volumes:
+      - ${BROWSER_DATA_DIR}:/config
+    expose:
+      - 3000
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.browser.rule=PathPrefix(`/browser`)
+      - traefik.http.routers.browser.entrypoints=websecure
+      - traefik.http.routers.browser.tls=true
+      - traefik.http.routers.browser.tls.certresolver=leresolver
+      - traefik.http.routers.browser.tls.domains[0].main=${SERVER_FQDN}
+      - traefik.http.routers.browser.middlewares=oauth2-proxy@docker,browser-slash
+      # The container only serves /browser/; send /browser there.
+      - traefik.http.middlewares.browser-slash.redirectregex.regex=^(https://[^/]+/browser)$$
+      - traefik.http.middlewares.browser-slash.redirectregex.replacement=$${1}/
+      - traefik.http.services.browser.loadbalancer.server.port=3000
+
   cloudcli-init:
     image: curlimages/curl:${CURL_VERSION}
     restart: "no"
